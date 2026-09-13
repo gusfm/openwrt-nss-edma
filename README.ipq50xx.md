@@ -442,11 +442,20 @@ run. What it needed, all in the branch and measured on the board (2026-09-13):
 - **`coherent_pool=512K`** in the board DTS instead of the 2M every other
   board passes - only safe together with patch `0828` below. 2M costs
   three pools of 2 MiB, one of which doubles itself: 8 MiB.
-- Build options: `CONFIG_NSS_MEM_PROFILE_LOW=y`, `CONFIG_ATH11K_MEM_PROFILE_512M=y`
-  (the 256M choice is a dead symbol - nothing in the ath11k patches branches
-  on it, so it gives the *largest* rings; 512M is the only profile that
-  reduces anything), `qcom,ath11k-fw-memory-mode = <2>` on both radios,
-  firmware 12.2-156.
+- **Memory profiles.** `NSS_MEM_PROFILE_LOW` (anything else hands the
+  firmware an 8192-entry empty-buffer pool: 35 MB of kmalloc-4k before the
+  first packet) and `ATH11K_MEM_PROFILE_256M`. The 256M choice used to be a
+  dead symbol - nothing in the ath11k patches branched on it, so it gave
+  the *largest* rings; it now means the 512M profile plus smaller RXDMA
+  rings (`DP_RXDMA_BUF_RING_SIZE` 512, which also sizes the NSS Wi-Fi RX
+  descriptor pool), and 512M/1G builds are untouched by that. Both Kconfig
+  choices default to these values when the EX511 v2 is among the selected
+  devices, so no menuconfig visit is needed. A multi-device image shares
+  one profile across all its boards, so a build that includes the EX511
+  puts every board in it on LOW / 256M. The firmware version
+  (`NSS_FIRMWARE_VERSION_12_2`) is still chosen by hand, as on every
+  ipq50xx board. `qcom,ath11k-fw-memory-mode = <2>` on both radios is in
+  the DTS.
 
 Result: ~850 / ~740 Mbit/s on 5 GHz with 4 streams (stock: 843 / 906),
 0 OOM, 20 MB available after the run against 3 MB before. Not done:
