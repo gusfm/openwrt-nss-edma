@@ -411,6 +411,9 @@ define KernelPackage/ath11k/config
        choice
             prompt "Memory Profile"
             depends on PACKAGE_kmod-ath11k
+            # 256 MB boards. Both spellings of the device symbol: the
+            # first is a single-device build, the second a multi-device one.
+            default ATH11K_MEM_PROFILE_256M if TARGET_qualcommax_ipq50xx_DEVICE_tplink_ex511-v2 || TARGET_DEVICE_qualcommax_ipq50xx_DEVICE_tplink_ex511-v2
             default ATH11K_MEM_PROFILE_1G
             help
             	This option allows you to select the memory profile.
