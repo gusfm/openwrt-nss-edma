@@ -74,6 +74,29 @@ switch_to_trunk() {
 		return 0
 	fi
 
+	#
+	# Realtek RTL8367x boards (TP-Link EX511 v2). Same shape as the QCA8337
+	# path below - let rtl8365mb do the full bring-up, unbind it, re-arm the
+	# fabric with the CPU tag off - but the SerDes survives the unbind here,
+	# so the module only repairs what dsa_unregister_switch() undid: every
+	# port left in BR_STATE_DISABLED, and the front PHYs suspended by
+	# phy_detach().
+	#
+	if [ "$fabric" = "rtl8367d" ]; then
+		dev="$(uci -q get nss.general.switch_dev)"
+		[ -n "$dev" ] || dev="90000.mdio-1:1d"
+		args="$(uci -q get nss.general.switch_args)"
+		if [ -e "/sys/bus/mdio_bus/drivers/rtl8365mb-mdio/$dev" ]; then
+			echo "$dev" > /sys/bus/mdio_bus/drivers/rtl8365mb-mdio/unbind 2>/dev/null
+			sleep 2
+		fi
+		# kmodloader's modprobe drops module parameters - insmod passes them.
+		# shellcheck disable=SC2086
+		insmod "/lib/modules/$(uname -r)/rtl8367d-nss.ko" switch_dev="$dev" $args 2>/dev/null ||
+			modprobe rtl8367d-nss 2>/dev/null
+		return 0
+	fi
+
 	dev="$(uci -q get nss.general.switch_dev)"
 	[ -n "$dev" ] || dev="90000.mdio-1:11"
 	vtu="$(uci -q get nss.general.vtu)"
